@@ -75,12 +75,21 @@ node cyberline.js uninstall
 命令行等价操作：
 
 ```bash
+node cyberline.js apply neon # 统一入口：自动判断参数类型
 node cyberline.js list       # 列出主题（带色板预览）
 node cyberline.js use neon   # 切换主题
 node cyberline.js bg grid    # 切换背景风格
 node cyberline.js status     # 当前配置
+node cyberline.js reload     # 开新 WT 标签页，让终端改动生效
 node preview.js all          # 全主题 × 全场景预览
 ```
+
+`apply` 会自己判断参数是主题名还是子命令（`apply neon` / `apply bg grid` / `apply opacity 0.6`），
+并在切换后自动开一个新的 Windows Terminal 标签页 —— **WT 的 profile 属性只在标签页创建时读取**，
+正在运行的会话不会热加载，这是「改了却看不到效果」最常见的原因。
+
+不在 Windows Terminal 里（例如经典 PowerShell / conhost 窗口）时，
+`apply` 会明确提示：那种窗口不加载 WT profile，状态栏能显示但看不到配色和背景。
 
 ## 四套主题
 

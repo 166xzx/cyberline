@@ -433,11 +433,101 @@ function cmdUninstall() {
 
 /* ── 入口 ─────────────────────────────────────────────── */
 
+/**
+ * 统一入口：把任意参数路由到对应子命令，自己判断类型。
+ *
+ * 存在的意义是把「该跑哪条命令」的判断从 slash 命令的说明书里挪进代码。
+ * /cyber 原本要把上百行规则塞进模型上下文，由模型读完再决定调用什么，
+ * 既慢又可能选错；现在模型只需固定转发一次 `apply <参数...>`。
+ *
+ * 用法：apply neon / apply bg grid / apply opacity 0.55 / apply banner compact
+ */
+function cmdApply(args) {
+  const [a, b] = args;
+
+  if (!a) { cmdList(); cmdStatus(); return; }
+
+  const THEME_ALIAS = { 霓虹: 'neon', 合成波: 'outrun', 矩阵: 'matrix', 东京: 'tokyo' };
+  const key = THEME_ALIAS[a] || a;
+
+  // 主题名可以直接写，不必加 use
+  if (THEMES[key]) {
+    cmdUse(key, {});
+    reloadHint();
+    return;
+  }
+
+  switch (a) {
+    case 'use':      return THEMES[b] ? (cmdUse(b, {}), reloadHint()) : cmdApply([b]);
+    case 'bg':       cmdBg(b); return reloadHint();
+    case 'opacity':  cmdOpacity(b); return reloadHint();
+    case 'banner':   return cmdBanner(b);
+    case 'toggle':   return cmdToggle(b);
+    case 'labels':   return cmdLabels();
+    case 'layout':
+    case 'one':
+    case 'two':      return cmdLayout(a === 'layout' ? b : a);
+    case 'status':   return cmdStatus();
+    case 'list':     return cmdList();
+    case 'install':  return cmdInstall();
+    case 'uninstall': return cmdUninstall();
+    case 'reload':   return openNewTab(true);
+    default:
+      console.error(c.r(`无法识别「${args.join(' ')}」`));
+      console.error(c.d('  主题: neon / outrun / matrix / tokyo'));
+      console.error(c.d('  其它: bg <风格> / opacity <值> / banner <风格> / toggle <分段> / labels / one|two'));
+      process.exit(1);
+  }
+}
+
+/**
+ * 在 Windows Terminal 里开一个新标签页，让改动立刻可见。
+ *
+ * WT 的 profile 属性（配色、背景图）只在标签页创建时读取，正在跑的
+ * 会话不会热加载 —— 这正是「改了却看不到」的常见原因。开个新标签页
+ * 比要求用户重启整个终端轻得多。
+ *
+ * 只在确实处于 WT 内部时才做（靠 WT_SESSION 判断）；在经典 conhost
+ * 或 SSH 里 wt.exe 可能不存在，静默跳过并给出文字提示。
+ */
+function openNewTab(explicit) {
+  const inWT = !!process.env.WT_SESSION;
+  if (!inWT) {
+    if (explicit) {
+      console.log(c.y('⚠ 当前不在 Windows Terminal 里（没有 WT_SESSION）'));
+      console.log(c.d('  终端配色与背景图由 WT 的 profile 提供，'));
+      console.log(c.d('  在经典 PowerShell / conhost 窗口里看不到效果。'));
+      console.log(c.d('  请按 Win 键搜索「Terminal」打开 Windows Terminal。'));
+    }
+    return false;
+  }
+  try {
+    execFileSync('wt.exe', ['-w', '0', 'nt'], { windowsHide: true, timeout: 3000 });
+    console.log(c.g('✓ 已开新标签页，改动在那里生效'));
+    return true;
+  } catch (_) {
+    console.log(c.d('  按 Ctrl+Shift+T 开新标签页即可看到'));
+    return false;
+  }
+}
+
+/** 终端类改动后的统一提示：能自动开标签页就开，不能就说清楚为什么 */
+function reloadHint() {
+  if (process.env.WT_SESSION) {
+    openNewTab(false);
+  } else {
+    console.log(c.y('⚠ 你当前不在 Windows Terminal 里，看不到终端配色/背景'));
+    console.log(c.d('  按 Win 键搜索「Terminal」打开 Windows Terminal 即可'));
+  }
+}
+
 function main() {
   const [cmd, arg] = process.argv.slice(2);
   const opts = { noTerminal: process.argv.includes('--no-terminal') };
 
   switch (cmd) {
+    case 'apply': return cmdApply(process.argv.slice(3));
+    case 'reload': return openNewTab(true);
     case 'list': return cmdList();
     case 'use':
       if (!arg) { console.error(c.r('用法: use <主题>')); process.exit(1); }
@@ -461,6 +551,10 @@ function main() {
     case 'uninstall': return cmdUninstall();
     default:
       console.log(c.b('\n  Cyberline — Claude Code 界面美化\n'));
+      console.log('  apply <任意参数>     统一入口，自动判断类型');
+      console.log('    apply neon           = use neon');
+      console.log('    apply bg grid        = bg grid');
+      console.log('  reload               开新 WT 标签页，让终端改动生效');
       console.log('  list                 列出主题并预览色板');
       console.log('  use <主题>           切换主题（状态栏 + 终端）');
       console.log('    --no-terminal      仅改状态栏，不动终端');
