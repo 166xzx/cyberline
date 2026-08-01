@@ -16,6 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const { execFileSync } = require('child_process');
 const { THEMES, DEFAULT_THEME } = require('./themes.js');
 
@@ -82,6 +83,25 @@ const PROFILE_GUID = '{c9be21ce-c0de-4ace-b0de-cbe411ce0001}';
 // 曾经写入过的非法 GUID，加载时需要顺手清掉
 const BAD_GUIDS = ['{c9be21ce-cy8e-4ace-b0de-cyber11ne0001}'];
 const LAUNCHER = path.join(DIR, 'cc.cmd');
+
+/**
+ * 按 Windows Terminal 的官方算法，从 profile 名推出 GUID。
+ *
+ * UUIDv5，命名空间 2bde4a90-d05f-401c-9492-e40884ead1d8，名字取 UTF-16LE。
+ * 用途是给第三方安装器留下的、缺 GUID 的 profile 补齐 —— 缺失会让 WT
+ * 拒绝加载整份配置。因为算法与 WT 自身一致，补出来的值不会和它后续
+ * 自动生成的冲突。
+ */
+function wtProfileGuid(name) {
+  const ns = Buffer.from('2bde4a90d05f401c9492e40884ead1d8', 'hex');
+  const nb = Buffer.from(name, 'utf16le');
+  const h = crypto.createHash('sha1').update(Buffer.concat([ns, nb])).digest();
+  const b = Buffer.from(h.slice(0, 16));
+  b[6] = (b[6] & 0x0f) | 0x50;  // 版本 5
+  b[8] = (b[8] & 0x3f) | 0x80;  // RFC 4122 变体
+  const x = b.toString('hex');
+  return `{${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20)}}`;
+}
 
 /**
  * 写入 Windows Terminal：注册配色方案 + 建/更新 Claude Code 专用 profile。
@@ -164,10 +184,22 @@ function applyTerminal(themeKey, cfg) {
   wt.tabWidthMode = 'compact';
   wt.theme = 'dark';
 
-  // 5) 写入前自检：GUID 非法会让 WT 拒绝加载整份配置并退回默认设置
+  // 5) 写入前自检：GUID 有问题会让 WT 拒绝加载整份配置、退回默认设置，
+  //    表现为「打开 WT 却是默认 CMD，我们的 profile 像没生效一样」。
+  //
+  //    两种情况分开处理：
+  //    - 缺失 GUID：常见于第三方安装器（如 Anaconda）追加的 profile。
+  //      不能只是跳过 —— 缺失同样会让 WT 报错。按官方算法补一个，
+  //      与 WT 自己生成的值一致，因此不会造成重复条目。
+  //    - 格式非法：多半是我们自己写坏了，宁可中止也不要毁掉用户配置。
   const guidRe = /^\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\}$/;
   for (const p of wt.profiles.list) {
-    if (p && p.guid && !guidRe.test(p.guid)) {
+    if (!p) continue;
+    if (!p.guid && p.name) {
+      p.guid = wtProfileGuid(p.name);
+      continue;
+    }
+    if (p.guid && !guidRe.test(p.guid)) {
       return { ok: false, msg: `GUID 非法，已中止写入：${p.guid}` };
     }
   }
