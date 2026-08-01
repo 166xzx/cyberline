@@ -1,0 +1,25 @@
+{
+  "theme": "neon",
+  "twoLine": true,
+  "labels": true,
+  "background": "gradient",
+  "backgroundOpacity": 0.7,
+  "bannerStyle": "auto",
+  "bannerEnv": true,
+  "barWidth": 8,
+  "segments": {
+    "model": true,
+    "flags": true,
+    "dir": true,
+    "git": true,
+    "context": true,
+    "cost": true,
+    "duration": true,
+    "lines": true,
+    "rateLimits": true,
+    "outputStyle": true,
+    "vim": true,
+    "agent": true,
+    "worktree": true
+  }
+}

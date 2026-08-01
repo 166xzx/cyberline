@@ -1,0 +1,9 @@
+# 统一行尾。没有这个文件时，Windows 上 checkout 会把 LF 转成 CRLF，
+# 而 macOS/Linux 协作者拉下来会看到整文件 diff。
+* text=auto eol=lf
+
+# cc.cmd 必须是 CRLF：cmd.exe 对纯 LF 的批处理文件行为不可靠
+*.cmd text eol=crlf
+
+# 二进制，不做行尾转换也不参与 diff
+*.png binary

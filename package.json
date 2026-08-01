@@ -1,0 +1,55 @@
+{
+  "name": "cyberline",
+  "version": "0.1.0",
+  "description": "赛博朋克风格的 Claude Code 状态栏与终端美化套件（零依赖）",
+  "keywords": [
+    "claude-code",
+    "statusline",
+    "windows-terminal",
+    "cyberpunk",
+    "terminal-theme"
+  ],
+  "license": "MIT",
+  "author": "166xzx",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/166xzx/cyberline.git"
+  },
+  "bugs": {
+    "url": "https://github.com/166xzx/cyberline/issues"
+  },
+  "homepage": "https://github.com/166xzx/cyberline#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "win32"
+  ],
+  "main": "statusline.js",
+  "bin": {
+    "cyberline": "cyberline.js"
+  },
+  "scripts": {
+    "install-statusline": "node cyberline.js install",
+    "preview": "node preview.js",
+    "status": "node cyberline.js status",
+    "backgrounds": "node make-bg.js all"
+  },
+  "files": [
+    "statusline.js",
+    "cyberline.js",
+    "themes.js",
+    "banner.js",
+    "preview.js",
+    "make-bg.js",
+    "bgpreview.js",
+    "pngread.js",
+    "pngwrite.js",
+    "cc.cmd",
+    "config.example.json",
+    "backgrounds/",
+    "commands/",
+    "README.md",
+    "LICENSE"
+  ]
+}

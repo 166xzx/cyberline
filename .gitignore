@@ -1,0 +1,20 @@
+# 个人配置：装完由 `cyberline.js install` 生成，各人主题/分段偏好不同
+config.json
+
+# 卸载用的原状态栏备份，内容是本机私有路径
+previous-statusline.json
+
+# 调试产物
+last-payload.json
+_*
+*.out
+*.log
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+node_modules/
